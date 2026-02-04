@@ -445,11 +445,10 @@ type ForegroundAppInfo struct {
 // GetForegroundApp attempts to identify the foreground app on a booted simulator
 // Note: This is best-effort as simctl doesn't provide direct foreground app info
 func (b *Bridge) GetForegroundApp(udid string) (*ForegroundAppInfo, error) {
-	// Use `xcrun simctl spawn` to run `ps` and find the most likely foreground app
-	// We look for processes with certain characteristics that indicate they're user apps
+	// Use `xcrun simctl spawn` to run `launchctl list` and find UIKitApplication entries
+	// The most recent UIKitApplication is typically the foreground app
 
-	// First, try to get the list of running processes
-	cmd := exec.Command("xcrun", "simctl", "spawn", udid, "ps", "-A", "-o", "pid,comm")
+	cmd := exec.Command("xcrun", "simctl", "spawn", udid, "launchctl", "list")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get running processes: %w", err)
@@ -458,117 +457,57 @@ func (b *Bridge) GetForegroundApp(udid string) (*ForegroundAppInfo, error) {
 	outputStr := string(output)
 	lines := strings.Split(outputStr, "\n")
 
-	// Parse process list and look for SpringBoard and other system processes
-	// The most recent user app launched is typically the foreground app
-	// We'll use a heuristic: find the most recent process that looks like an app
+	// Parse launchctl output to find UIKitApplication entries
+	// Format: PID	Status	Label
+	// Example: 51543	0	UIKitApplication:com.apple.Maps[7118][rb-legacy]
 
-	var lastUserAppPID int
-	var lastUserAppComm string
+	var mostRecentApp *ForegroundAppInfo
+	var mostRecentPID int
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "PID") {
+		if line == "" {
 			continue
 		}
 
-		// Split by whitespace
+		// Look for UIKitApplication entries
+		if !strings.Contains(line, "UIKitApplication:") {
+			continue
+		}
+
+		// Split by tabs and spaces
 		fields := strings.Fields(line)
-		if len(fields) < 2 {
+		if len(fields) < 3 {
 			continue
 		}
 
-		pid := fields[0]
-		comm := strings.Join(fields[1:], " ")
-
-		// Skip system processes
-		if strings.Contains(comm, "launchd") ||
-			strings.Contains(comm, "logd") ||
-			strings.Contains(comm, "UserEventAgent") ||
-			strings.Contains(comm, "configd") ||
-			strings.Contains(comm, "nsurlsessiond") ||
-			strings.Contains(comm, "SpringBoard") {
+		// Parse PID
+		var pid int
+		if _, err := fmt.Sscanf(fields[0], "%d", &pid); err != nil {
 			continue
 		}
 
-		// Look for processes that look like apps (have .app in path)
-		if strings.Contains(comm, ".app") {
-			// Extract bundle ID from the path
-			// Example: /Applications/Maps.app/Maps -> com.apple.Maps
-			lastUserAppComm = comm
-			if pidInt, err := fmt.Sscanf(pid, "%d", &lastUserAppPID); err == nil && pidInt == 1 {
-				// Successfully parsed PID
-			}
-		}
-	}
+		// Parse label to extract bundle ID
+		// Format: UIKitApplication:com.apple.Maps[7118][rb-legacy]
+		label := fields[2]
+		if strings.HasPrefix(label, "UIKitApplication:") {
+			// Extract bundle ID between "UIKitApplication:" and "["
+			bundleIDPart := strings.TrimPrefix(label, "UIKitApplication:")
+			if idx := strings.Index(bundleIDPart, "["); idx > 0 {
+				bundleID := bundleIDPart[:idx]
 
-	// If we found a potential foreground app, try to get its bundle ID
-	if lastUserAppComm != "" {
-		// Extract app name from the path
-		// Example: /Applications/Maps.app/Maps -> Maps
-		parts := strings.Split(lastUserAppComm, "/")
-		var appName string
-		for _, part := range parts {
-			if strings.HasSuffix(part, ".app") {
-				appName = strings.TrimSuffix(part, ".app")
-				break
-			}
-		}
-
-		if appName != "" {
-			// Try to map app name to bundle ID by listing apps
-			// This is a best-effort approach
-			bundleID, err := b.findBundleIDByAppName(udid, appName)
-			if err == nil && bundleID != "" {
-				return &ForegroundAppInfo{
-					BundleID: bundleID,
-					PID:      lastUserAppPID,
-				}, nil
-			}
-		}
-	}
-
-	// If we couldn't determine foreground app, return nil (not an error)
-	return nil, nil
-}
-
-// findBundleIDByAppName attempts to find a bundle ID by app name
-func (b *Bridge) findBundleIDByAppName(udid, appName string) (string, error) {
-	// Run xcrun simctl listapps to get all installed apps
-	cmd := exec.Command("xcrun", "simctl", "listapps", udid)
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to list apps: %w", err)
-	}
-
-	outputStr := string(output)
-
-	// Parse the plist-style output to find bundle IDs
-	// Look for bundle IDs that might match the app name
-	lines := strings.Split(outputStr, "\n")
-
-	for i, line := range lines {
-		// Look for bundle ID lines (they start with quotes)
-		if strings.HasPrefix(strings.TrimSpace(line), "\"com.") {
-			bundleID := strings.Trim(strings.TrimSpace(strings.Split(line, "=")[0]), "\"")
-
-			// Check subsequent lines for CFBundleExecutable or CFBundleDisplayName
-			// that matches our app name
-			for j := i + 1; j < len(lines) && j < i+20; j++ {
-				checkLine := lines[j]
-				if strings.Contains(checkLine, "CFBundleExecutable") ||
-					strings.Contains(checkLine, "CFBundleDisplayName") ||
-					strings.Contains(checkLine, "CFBundleName") {
-					if strings.Contains(checkLine, appName) {
-						return bundleID, nil
+				// Keep the most recent (highest PID) UIKitApplication
+				if pid > mostRecentPID {
+					mostRecentPID = pid
+					mostRecentApp = &ForegroundAppInfo{
+						BundleID: bundleID,
+						PID:      pid,
 					}
 				}
-				// Stop at the next bundle ID
-				if strings.HasPrefix(strings.TrimSpace(checkLine), "\"com.") {
-					break
-				}
 			}
 		}
 	}
 
-	return "", fmt.Errorf("bundle ID not found for app: %s", appName)
+	// Return the most recent app (may be nil if no apps running)
+	return mostRecentApp, nil
 }
