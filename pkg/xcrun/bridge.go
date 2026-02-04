@@ -3,8 +3,10 @@ package xcrun
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/neoforge-dev/ios-agent-cli/pkg/device"
 )
@@ -129,4 +131,43 @@ func (b *Bridge) GetDeviceState(udid string) (device.DeviceState, error) {
 	}
 
 	return "", fmt.Errorf("device not found: %s", udid)
+}
+
+// ScreenshotResult contains metadata about a captured screenshot
+type ScreenshotResult struct {
+	Path      string `json:"path"`
+	Format    string `json:"format"`
+	SizeBytes int64  `json:"size_bytes"`
+	DeviceID  string `json:"device_id"`
+	Timestamp string `json:"timestamp"`
+}
+
+// CaptureScreenshot captures a screenshot from a simulator
+func (b *Bridge) CaptureScreenshot(udid, outputPath string) (*ScreenshotResult, error) {
+	// Run xcrun simctl io <udid> screenshot <path>
+	cmd := exec.Command("xcrun", "simctl", "io", udid, "screenshot", outputPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to capture screenshot: %s", string(output))
+	}
+
+	// Verify file was created and get its size
+	fileInfo, err := os.Stat(outputPath)
+	if err != nil {
+		return nil, fmt.Errorf("screenshot file not found after capture: %w", err)
+	}
+
+	// Determine format from file extension
+	format := "png"
+	if strings.HasSuffix(strings.ToLower(outputPath), ".jpg") || strings.HasSuffix(strings.ToLower(outputPath), ".jpeg") {
+		format = "jpeg"
+	}
+
+	return &ScreenshotResult{
+		Path:      outputPath,
+		Format:    format,
+		SizeBytes: fileInfo.Size(),
+		DeviceID:  udid,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}, nil
 }

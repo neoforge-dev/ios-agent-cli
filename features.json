@@ -103,7 +103,7 @@
       "name": "Screenshot command",
       "description": "Implement 'ios-agent screenshot' to capture simulator screen",
       "priority": "P0",
-      "status": "pending",
+      "status": "done",
       "epic": "observation",
       "effort": "2h",
       "blocked_by": ["IOS-003"],
