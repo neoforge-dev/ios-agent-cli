@@ -171,3 +171,108 @@ func (b *Bridge) CaptureScreenshot(udid, outputPath string) (*ScreenshotResult, 
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }
+
+// TapResult contains metadata about a tap interaction
+type TapResult struct {
+	X         int    `json:"x"`
+	Y         int    `json:"y"`
+	DeviceID  string `json:"device_id"`
+	Timestamp string `json:"timestamp"`
+}
+
+// Tap simulates a tap at the specified coordinates
+// Note: xcrun simctl doesn't support direct tap, so we use AppleScript
+func (b *Bridge) Tap(udid string, x, y int) (*TapResult, error) {
+	// Use AppleScript to send tap via Simulator.app
+	// This is the most reliable method without requiring mobilecli
+	script := fmt.Sprintf(`
+tell application "System Events"
+	tell process "Simulator"
+		set frontmost to true
+		click at {%d, %d}
+	end tell
+end tell
+`, x, y)
+
+	cmd := exec.Command("osascript", "-e", script)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// If AppleScript fails, provide a helpful error message
+		return nil, fmt.Errorf("failed to tap at (%d, %d): %s. Note: Simulator.app must be running and focused. For more reliable tap support, install mobilecli: https://github.com/meghaphone/mobilecli", x, y, string(output))
+	}
+
+	return &TapResult{
+		X:         x,
+		Y:         y,
+		DeviceID:  udid,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}, nil
+}
+
+// TextInputResult contains metadata about a text input interaction
+type TextInputResult struct {
+	Text      string `json:"text"`
+	Length    int    `json:"length"`
+	DeviceID  string `json:"device_id"`
+	Timestamp string `json:"timestamp"`
+}
+
+// TypeText sends text input to the simulator
+func (b *Bridge) TypeText(udid, text string) (*TextInputResult, error) {
+	// Use xcrun simctl io <udid> sendkey <text>
+	// Note: simctl keyboardinput is more reliable for text input
+	cmd := exec.Command("xcrun", "simctl", "keyboardinput", udid, text)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to type text: %s", string(output))
+	}
+
+	return &TextInputResult{
+		Text:      text,
+		Length:    len(text),
+		DeviceID:  udid,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}, nil
+}
+
+// LaunchApp launches an app on a simulator by bundle ID
+// Returns the PID of the launched process
+func (b *Bridge) LaunchApp(udid, bundleID string) (string, error) {
+	// Run xcrun simctl launch <udid> <bundle-id>
+	// Output format: "<bundle-id>: <pid>"
+	cmd := exec.Command("xcrun", "simctl", "launch", udid, bundleID)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to launch app: %s", string(output))
+	}
+
+	// Parse PID from output
+	// Example output: "com.example.app: 12345"
+	outputStr := strings.TrimSpace(string(output))
+	parts := strings.Split(outputStr, ":")
+	if len(parts) == 2 {
+		pid := strings.TrimSpace(parts[1])
+		return pid, nil
+	}
+
+	// If we can't parse PID, still return success since launch succeeded
+	return "", nil
+}
+
+// TerminateApp terminates a running app on a simulator by bundle ID
+func (b *Bridge) TerminateApp(udid, bundleID string) error {
+	// Run xcrun simctl terminate <udid> <bundle-id>
+	cmd := exec.Command("xcrun", "simctl", "terminate", udid, bundleID)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if error is because app is not running
+		// xcrun simctl terminate may fail if app is not running
+		outputStr := string(output)
+		if strings.Contains(outputStr, "No matching processes") {
+			// App was not running, consider this success
+			return nil
+		}
+		return fmt.Errorf("failed to terminate app: %s", outputStr)
+	}
+	return nil
+}
