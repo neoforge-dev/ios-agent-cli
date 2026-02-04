@@ -19,7 +19,7 @@
       "name": "Device discovery (local)",
       "description": "Implement 'ios-agent devices' command to discover local iOS simulators using xcrun simctl",
       "priority": "P0",
-      "status": "pending",
+      "status": "done",
       "epic": "device-management",
       "effort": "2h",
       "acceptance_criteria": [

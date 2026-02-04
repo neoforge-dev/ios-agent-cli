@@ -207,7 +207,7 @@ ios-agent-cli/
 
 ### Phase 1 (MVP) - Current
 - [x] Project scaffold
-- [ ] Device discovery (local)
+- [x] Device discovery (local)
 - [ ] Simulator lifecycle
 - [ ] App management
 - [ ] Basic UI interactions
