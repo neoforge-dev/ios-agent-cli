@@ -1,0 +1,237 @@
+{
+  "project": "ios-agent-cli",
+  "domain": "neoforge-dev",
+  "description": "AI-agent-friendly iOS automation CLI",
+  "version": "0.1.0",
+  "status": "active",
+  "features": [
+    {
+      "id": "IOS-001",
+      "name": "Project scaffold",
+      "description": "Go project setup with cobra CLI, Makefile, and basic structure",
+      "priority": "P0",
+      "status": "done",
+      "epic": "foundation",
+      "effort": "1h"
+    },
+    {
+      "id": "IOS-002",
+      "name": "Device discovery (local)",
+      "description": "Implement 'ios-agent devices' command to discover local iOS simulators using xcrun simctl",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "device-management",
+      "effort": "2h",
+      "acceptance_criteria": [
+        "Command returns JSON list of simulators",
+        "Shows device id, name, state, os_version",
+        "Handles no simulators gracefully"
+      ]
+    },
+    {
+      "id": "IOS-003",
+      "name": "Simulator boot command",
+      "description": "Implement 'ios-agent simulator boot' to boot a simulator by name or ID",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "device-management",
+      "effort": "2h",
+      "blocked_by": ["IOS-002"],
+      "acceptance_criteria": [
+        "Boots simulator by name",
+        "Polls until state is booted",
+        "Timeout after 60s with error"
+      ]
+    },
+    {
+      "id": "IOS-004",
+      "name": "Simulator shutdown command",
+      "description": "Implement 'ios-agent simulator shutdown' to shutdown a running simulator",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "device-management",
+      "effort": "1h",
+      "blocked_by": ["IOS-003"]
+    },
+    {
+      "id": "IOS-005",
+      "name": "App launch command",
+      "description": "Implement 'ios-agent app launch' to launch an app by bundle ID",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "app-management",
+      "effort": "2h",
+      "blocked_by": ["IOS-003"],
+      "acceptance_criteria": [
+        "Launches app by bundle ID",
+        "Returns PID and state",
+        "Optional --wait-for-ready flag"
+      ]
+    },
+    {
+      "id": "IOS-006",
+      "name": "App terminate command",
+      "description": "Implement 'ios-agent app terminate' to terminate a running app",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "app-management",
+      "effort": "1h",
+      "blocked_by": ["IOS-005"]
+    },
+    {
+      "id": "IOS-007",
+      "name": "App install command",
+      "description": "Implement 'ios-agent app install' to install an IPA on simulator",
+      "priority": "P1",
+      "status": "pending",
+      "epic": "app-management",
+      "effort": "2h",
+      "blocked_by": ["IOS-003"]
+    },
+    {
+      "id": "IOS-008",
+      "name": "App uninstall command",
+      "description": "Implement 'ios-agent app uninstall' to remove an app from simulator",
+      "priority": "P1",
+      "status": "pending",
+      "epic": "app-management",
+      "effort": "1h",
+      "blocked_by": ["IOS-005"]
+    },
+    {
+      "id": "IOS-009",
+      "name": "Screenshot command",
+      "description": "Implement 'ios-agent screenshot' to capture simulator screen",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "observation",
+      "effort": "2h",
+      "blocked_by": ["IOS-003"],
+      "acceptance_criteria": [
+        "Saves PNG to specified path",
+        "Returns dimensions and file size",
+        "Works with mobilecli or xcrun simctl"
+      ]
+    },
+    {
+      "id": "IOS-010",
+      "name": "Tap interaction command",
+      "description": "Implement 'ios-agent io tap' to tap at x,y coordinates",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "ui-interactions",
+      "effort": "2h",
+      "blocked_by": ["IOS-003"],
+      "acceptance_criteria": [
+        "Taps at specified coordinates",
+        "Returns success/failure",
+        "Validates coordinates within screen bounds"
+      ]
+    },
+    {
+      "id": "IOS-011",
+      "name": "Text input command",
+      "description": "Implement 'ios-agent io text' to type text into focused field",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "ui-interactions",
+      "effort": "1h",
+      "blocked_by": ["IOS-010"]
+    },
+    {
+      "id": "IOS-012",
+      "name": "Swipe interaction command",
+      "description": "Implement 'ios-agent io swipe' to swipe from point A to B",
+      "priority": "P1",
+      "status": "pending",
+      "epic": "ui-interactions",
+      "effort": "2h",
+      "blocked_by": ["IOS-010"]
+    },
+    {
+      "id": "IOS-013",
+      "name": "Button press command",
+      "description": "Implement 'ios-agent io button' to press hardware buttons (HOME, POWER, etc)",
+      "priority": "P1",
+      "status": "pending",
+      "epic": "ui-interactions",
+      "effort": "1h",
+      "blocked_by": ["IOS-010"]
+    },
+    {
+      "id": "IOS-014",
+      "name": "State command",
+      "description": "Implement 'ios-agent state' to get comprehensive device state snapshot",
+      "priority": "P1",
+      "status": "pending",
+      "epic": "observation",
+      "effort": "3h",
+      "blocked_by": ["IOS-009"],
+      "acceptance_criteria": [
+        "Returns device info, foreground app, battery",
+        "Optional screenshot inclusion",
+        "JSON schema for agent parsing"
+      ]
+    },
+    {
+      "id": "IOS-015",
+      "name": "Error handling framework",
+      "description": "Implement standardized error codes and JSON error responses",
+      "priority": "P0",
+      "status": "pending",
+      "epic": "foundation",
+      "effort": "2h",
+      "acceptance_criteria": [
+        "All commands return consistent JSON",
+        "Error codes from spec (DEVICE_NOT_FOUND, etc)",
+        "Helpful error messages"
+      ]
+    },
+    {
+      "id": "IOS-016",
+      "name": "Integration tests",
+      "description": "Write integration tests that run against real simulator",
+      "priority": "P1",
+      "status": "pending",
+      "epic": "quality",
+      "effort": "4h",
+      "blocked_by": ["IOS-009", "IOS-010"]
+    },
+    {
+      "id": "IOS-017",
+      "name": "Remote host support (manual)",
+      "description": "Add --remote-host flag to connect to remote mobilecli server",
+      "priority": "P2",
+      "status": "pending",
+      "epic": "remote",
+      "effort": "3h",
+      "blocked_by": ["IOS-010"]
+    },
+    {
+      "id": "IOS-018",
+      "name": "Tailscale device discovery",
+      "description": "Implement automatic discovery of devices on Tailscale network",
+      "priority": "P2",
+      "status": "pending",
+      "epic": "remote",
+      "effort": "4h",
+      "blocked_by": ["IOS-017"]
+    }
+  ],
+  "epics": {
+    "foundation": "Project setup and core infrastructure",
+    "device-management": "Simulator and device lifecycle commands",
+    "app-management": "App install, launch, terminate commands",
+    "observation": "Screenshot and state inspection",
+    "ui-interactions": "Tap, swipe, text input commands",
+    "quality": "Testing and reliability",
+    "remote": "Tailscale remote device support"
+  },
+  "tech_stack": {
+    "language": "Go 1.21+",
+    "cli_framework": "cobra",
+    "testing": "testify",
+    "device_control": ["xcrun simctl", "mobilecli"],
+    "remote": ["Tailscale", "SSH"]
+  }
+}
