@@ -98,6 +98,33 @@ func TestInstallResultJSON(t *testing.T) {
 	assert.Equal(t, result.Message, decoded.Message)
 }
 
+func TestUninstallResultJSON(t *testing.T) {
+	result := UninstallResult{
+		Device: &device.Device{
+			ID:        "test-device-1",
+			Name:      "iPhone 15 Pro",
+			State:     device.StateBooted,
+			Type:      device.DeviceTypeSimulator,
+			OSVersion: "17.4",
+			UDID:      "test-device-1",
+			Available: true,
+		},
+		BundleID: "com.example.app",
+		Message:  "App uninstalled successfully",
+	}
+
+	// Verify JSON serialization
+	data, err := json.Marshal(result)
+	require.NoError(t, err)
+
+	var decoded UninstallResult
+	err = json.Unmarshal(data, &decoded)
+	require.NoError(t, err)
+
+	assert.Equal(t, result.BundleID, decoded.BundleID)
+	assert.Equal(t, result.Message, decoded.Message)
+}
+
 func TestAppLaunchDeviceValidation(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -284,6 +311,73 @@ func TestAppInstallDeviceValidation(t *testing.T) {
 			name:     "valid device",
 			deviceID: "test-device-1",
 			appPath:  "/path/to/MyApp.app",
+			mockDevices: []device.Device{
+				{
+					ID:        "test-device-1",
+					Name:      "iPhone 15 Pro",
+					State:     device.StateBooted,
+					Type:      device.DeviceTypeSimulator,
+					OSVersion: "17.4",
+					UDID:      "test-device-1",
+					Available: true,
+				},
+			},
+			expectedError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a simple mock bridge
+			mockBridge := &simpleMockBridge{
+				devices: tt.mockDevices,
+			}
+
+			manager := device.NewLocalManager(mockBridge)
+
+			// Test device lookup
+			dev, err := manager.GetDevice(tt.deviceID)
+
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, dev)
+			}
+		})
+	}
+}
+
+func TestAppUninstallDeviceValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		deviceID      string
+		bundleID      string
+		mockDevices   []device.Device
+		expectedError string
+	}{
+		{
+			name:     "device not found",
+			deviceID: "nonexistent",
+			bundleID: "com.example.app",
+			mockDevices: []device.Device{
+				{
+					ID:        "test-device-1",
+					Name:      "iPhone 15 Pro",
+					State:     device.StateBooted,
+					Type:      device.DeviceTypeSimulator,
+					OSVersion: "17.4",
+					UDID:      "test-device-1",
+					Available: true,
+				},
+			},
+			expectedError: "device not found",
+		},
+		{
+			name:     "valid device",
+			deviceID: "test-device-1",
+			bundleID: "com.example.app",
 			mockDevices: []device.Device{
 				{
 					ID:        "test-device-1",

@@ -300,3 +300,14 @@ func (b *Bridge) InstallApp(udid, appPath string) (string, error) {
 	bundleID := strings.TrimSpace(string(plistOutput))
 	return bundleID, nil
 }
+
+// UninstallApp uninstalls an app from a simulator by bundle ID
+func (b *Bridge) UninstallApp(udid, bundleID string) error {
+	// Run xcrun simctl uninstall <udid> <bundle-id>
+	cmd := exec.Command("xcrun", "simctl", "uninstall", udid, bundleID)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to uninstall app: %s", string(output))
+	}
+	return nil
+}

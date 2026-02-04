@@ -23,6 +23,10 @@ var (
 	// Install command flags
 	installDeviceID string
 	installAppPath  string
+
+	// Uninstall command flags
+	uninstallDeviceID string
+	uninstallBundleID string
 )
 
 // appCmd represents the app command group
@@ -34,7 +38,8 @@ var appCmd = &cobra.Command{
 Examples:
   ios-agent app launch --device <udid> --bundle com.example.app
   ios-agent app launch --device <udid> --bundle com.example.app --wait-for-ready
-  ios-agent app terminate --device <udid> --bundle com.example.app`,
+  ios-agent app terminate --device <udid> --bundle com.example.app
+  ios-agent app uninstall --device <udid> --bundle com.example.app`,
 }
 
 // launchCmd represents the launch subcommand
@@ -91,11 +96,29 @@ Examples:
 	Run: runInstallCmd,
 }
 
+// uninstallCmd represents the uninstall subcommand
+var uninstallCmd = &cobra.Command{
+	Use:   "uninstall",
+	Short: "Uninstall an iOS application from a simulator",
+	Long: `Uninstall an iOS application by bundle ID from a simulator.
+
+The command will:
+1. Verify the device exists
+2. Uninstall the app using xcrun simctl
+3. Return success status in JSON format
+
+Examples:
+  ios-agent app uninstall --device <udid> --bundle com.example.app
+  ios-agent app uninstall -d <udid> --bundle com.example.app`,
+	Run: runUninstallCmd,
+}
+
 func init() {
 	rootCmd.AddCommand(appCmd)
 	appCmd.AddCommand(launchCmd)
 	appCmd.AddCommand(terminateCmd)
 	appCmd.AddCommand(installCmd)
+	appCmd.AddCommand(uninstallCmd)
 
 	// Launch command flags
 	launchCmd.Flags().StringVarP(&launchDeviceID, "device", "d", "", "Device ID to launch app on (required)")
@@ -116,6 +139,12 @@ func init() {
 	installCmd.Flags().StringVar(&installAppPath, "app", "", "Path to .app bundle to install (required)")
 	installCmd.MarkFlagRequired("device")
 	installCmd.MarkFlagRequired("app")
+
+	// Uninstall command flags
+	uninstallCmd.Flags().StringVarP(&uninstallDeviceID, "device", "d", "", "Device ID to uninstall app from (required)")
+	uninstallCmd.Flags().StringVar(&uninstallBundleID, "bundle", "", "Bundle ID of the app to uninstall (required)")
+	uninstallCmd.MarkFlagRequired("device")
+	uninstallCmd.MarkFlagRequired("bundle")
 }
 
 // LaunchResult represents the result of an app launch operation
@@ -141,6 +170,13 @@ type InstallResult struct {
 	BundleID    string         `json:"bundle_id"`
 	InstallTime int64          `json:"install_time_ms"`
 	Message     string         `json:"message"`
+}
+
+// UninstallResult represents the result of an app uninstall operation
+type UninstallResult struct {
+	Device   *device.Device `json:"device"`
+	BundleID string         `json:"bundle_id"`
+	Message  string         `json:"message"`
 }
 
 func runLaunchCmd(cmd *cobra.Command, args []string) {
@@ -265,4 +301,37 @@ func runInstallCmd(cmd *cobra.Command, args []string) {
 	}
 
 	outputSuccess("app.install", result)
+}
+
+func runUninstallCmd(cmd *cobra.Command, args []string) {
+	// Create device manager with xcrun bridge
+	bridge := xcrun.NewBridge()
+	manager := device.NewLocalManager(bridge)
+
+	// Get device to verify it exists
+	dev, err := manager.GetDevice(uninstallDeviceID)
+	if err != nil {
+		outputError("app.uninstall", "DEVICE_NOT_FOUND", err.Error(), map[string]string{
+			"device_id": uninstallDeviceID,
+		})
+		return
+	}
+
+	// Uninstall the app
+	err = bridge.UninstallApp(dev.UDID, uninstallBundleID)
+	if err != nil {
+		outputError("app.uninstall", "APP_UNINSTALL_FAILED", err.Error(), map[string]string{
+			"device_id": dev.ID,
+			"bundle_id": uninstallBundleID,
+		})
+		return
+	}
+
+	result := UninstallResult{
+		Device:   dev,
+		BundleID: uninstallBundleID,
+		Message:  "App uninstalled successfully",
+	}
+
+	outputSuccess("app.uninstall", result)
 }

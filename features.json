@@ -93,7 +93,7 @@
       "name": "App uninstall command",
       "description": "Implement 'ios-agent app uninstall' to remove an app from simulator",
       "priority": "P1",
-      "status": "pending",
+      "status": "done",
       "epic": "app-management",
       "effort": "1h",
       "blocked_by": ["IOS-005"]
