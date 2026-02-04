@@ -118,7 +118,7 @@
       "name": "Tap interaction command",
       "description": "Implement 'ios-agent io tap' to tap at x,y coordinates",
       "priority": "P0",
-      "status": "pending",
+      "status": "done",
       "epic": "ui-interactions",
       "effort": "2h",
       "blocked_by": ["IOS-003"],
@@ -133,7 +133,7 @@
       "name": "Text input command",
       "description": "Implement 'ios-agent io text' to type text into focused field",
       "priority": "P0",
-      "status": "pending",
+      "status": "done",
       "epic": "ui-interactions",
       "effort": "1h",
       "blocked_by": ["IOS-010"]
