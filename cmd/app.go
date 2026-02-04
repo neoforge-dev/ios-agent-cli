@@ -19,6 +19,10 @@ var (
 	// Terminate command flags
 	terminateBundleID string
 	terminateDeviceID string
+
+	// Install command flags
+	installDeviceID string
+	installAppPath  string
 )
 
 // appCmd represents the app command group
@@ -70,10 +74,28 @@ Examples:
 	Run: runTerminateCmd,
 }
 
+// installCmd represents the install subcommand
+var installCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Install an iOS application on a simulator",
+	Long: `Install an iOS application (.app bundle) on a simulator.
+
+The command will:
+1. Verify the device exists
+2. Install the app using xcrun simctl
+3. Return bundle ID and install time in JSON format
+
+Examples:
+  ios-agent app install --device <udid> --app /path/to/MyApp.app
+  ios-agent app install -d <udid> --app /path/to/MyApp.app`,
+	Run: runInstallCmd,
+}
+
 func init() {
 	rootCmd.AddCommand(appCmd)
 	appCmd.AddCommand(launchCmd)
 	appCmd.AddCommand(terminateCmd)
+	appCmd.AddCommand(installCmd)
 
 	// Launch command flags
 	launchCmd.Flags().StringVarP(&launchDeviceID, "device", "d", "", "Device ID to launch app on (required)")
@@ -88,6 +110,12 @@ func init() {
 	terminateCmd.Flags().StringVar(&terminateBundleID, "bundle", "", "Bundle ID of the app to terminate (required)")
 	terminateCmd.MarkFlagRequired("device")
 	terminateCmd.MarkFlagRequired("bundle")
+
+	// Install command flags
+	installCmd.Flags().StringVarP(&installDeviceID, "device", "d", "", "Device ID to install app on (required)")
+	installCmd.Flags().StringVar(&installAppPath, "app", "", "Path to .app bundle to install (required)")
+	installCmd.MarkFlagRequired("device")
+	installCmd.MarkFlagRequired("app")
 }
 
 // LaunchResult represents the result of an app launch operation
@@ -104,6 +132,15 @@ type TerminateResult struct {
 	Device   *device.Device `json:"device"`
 	BundleID string         `json:"bundle_id"`
 	Message  string         `json:"message"`
+}
+
+// InstallResult represents the result of an app install operation
+type InstallResult struct {
+	Device      *device.Device `json:"device"`
+	AppPath     string         `json:"app_path"`
+	BundleID    string         `json:"bundle_id"`
+	InstallTime int64          `json:"install_time_ms"`
+	Message     string         `json:"message"`
 }
 
 func runLaunchCmd(cmd *cobra.Command, args []string) {
@@ -188,4 +225,44 @@ func runTerminateCmd(cmd *cobra.Command, args []string) {
 	}
 
 	outputSuccess("app.terminate", result)
+}
+
+func runInstallCmd(cmd *cobra.Command, args []string) {
+	startTime := time.Now()
+
+	// Create device manager with xcrun bridge
+	bridge := xcrun.NewBridge()
+	manager := device.NewLocalManager(bridge)
+
+	// Get device to verify it exists
+	dev, err := manager.GetDevice(installDeviceID)
+	if err != nil {
+		outputError("app.install", "DEVICE_NOT_FOUND", err.Error(), map[string]string{
+			"device_id": installDeviceID,
+		})
+		return
+	}
+
+	// Install the app
+	bundleID, err := bridge.InstallApp(dev.UDID, installAppPath)
+	if err != nil {
+		outputError("app.install", "APP_INSTALL_FAILED", err.Error(), map[string]string{
+			"device_id": dev.ID,
+			"app_path":  installAppPath,
+		})
+		return
+	}
+
+	// Calculate install time
+	installTime := time.Since(startTime).Milliseconds()
+
+	result := InstallResult{
+		Device:      dev,
+		AppPath:     installAppPath,
+		BundleID:    bundleID,
+		InstallTime: installTime,
+		Message:     fmt.Sprintf("App installed successfully in %dms", installTime),
+	}
+
+	outputSuccess("app.install", result)
 }

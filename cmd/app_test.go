@@ -67,6 +67,37 @@ func TestTerminateResultJSON(t *testing.T) {
 	assert.Equal(t, result.Message, decoded.Message)
 }
 
+func TestInstallResultJSON(t *testing.T) {
+	result := InstallResult{
+		Device: &device.Device{
+			ID:        "test-device-1",
+			Name:      "iPhone 15 Pro",
+			State:     device.StateBooted,
+			Type:      device.DeviceTypeSimulator,
+			OSVersion: "17.4",
+			UDID:      "test-device-1",
+			Available: true,
+		},
+		AppPath:     "/path/to/MyApp.app",
+		BundleID:    "com.example.app",
+		InstallTime: 1234,
+		Message:     "App installed successfully in 1234ms",
+	}
+
+	// Verify JSON serialization
+	data, err := json.Marshal(result)
+	require.NoError(t, err)
+
+	var decoded InstallResult
+	err = json.Unmarshal(data, &decoded)
+	require.NoError(t, err)
+
+	assert.Equal(t, result.AppPath, decoded.AppPath)
+	assert.Equal(t, result.BundleID, decoded.BundleID)
+	assert.Equal(t, result.InstallTime, decoded.InstallTime)
+	assert.Equal(t, result.Message, decoded.Message)
+}
+
 func TestAppLaunchDeviceValidation(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -186,6 +217,73 @@ func TestAppTerminateDeviceValidation(t *testing.T) {
 			name:     "valid device",
 			deviceID: "test-device-1",
 			bundleID: "com.example.app",
+			mockDevices: []device.Device{
+				{
+					ID:        "test-device-1",
+					Name:      "iPhone 15 Pro",
+					State:     device.StateBooted,
+					Type:      device.DeviceTypeSimulator,
+					OSVersion: "17.4",
+					UDID:      "test-device-1",
+					Available: true,
+				},
+			},
+			expectedError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a simple mock bridge
+			mockBridge := &simpleMockBridge{
+				devices: tt.mockDevices,
+			}
+
+			manager := device.NewLocalManager(mockBridge)
+
+			// Test device lookup
+			dev, err := manager.GetDevice(tt.deviceID)
+
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, dev)
+			}
+		})
+	}
+}
+
+func TestAppInstallDeviceValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		deviceID      string
+		appPath       string
+		mockDevices   []device.Device
+		expectedError string
+	}{
+		{
+			name:     "device not found",
+			deviceID: "nonexistent",
+			appPath:  "/path/to/MyApp.app",
+			mockDevices: []device.Device{
+				{
+					ID:        "test-device-1",
+					Name:      "iPhone 15 Pro",
+					State:     device.StateBooted,
+					Type:      device.DeviceTypeSimulator,
+					OSVersion: "17.4",
+					UDID:      "test-device-1",
+					Available: true,
+				},
+			},
+			expectedError: "device not found",
+		},
+		{
+			name:     "valid device",
+			deviceID: "test-device-1",
+			appPath:  "/path/to/MyApp.app",
 			mockDevices: []device.Device{
 				{
 					ID:        "test-device-1",

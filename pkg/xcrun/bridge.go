@@ -276,3 +276,27 @@ func (b *Bridge) TerminateApp(udid, bundleID string) error {
 	}
 	return nil
 }
+
+// InstallApp installs an app on a simulator
+// Returns the bundle ID of the installed app
+func (b *Bridge) InstallApp(udid, appPath string) (string, error) {
+	// Run xcrun simctl install <udid> <app-path>
+	cmd := exec.Command("xcrun", "simctl", "install", udid, appPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to install app: %s", string(output))
+	}
+
+	// Extract bundle ID from the app bundle
+	// Run plutil to read Info.plist from the app bundle
+	infoPlistPath := fmt.Sprintf("%s/Info.plist", appPath)
+	plistCmd := exec.Command("plutil", "-extract", "CFBundleIdentifier", "raw", infoPlistPath)
+	plistOutput, err := plistCmd.Output()
+	if err != nil {
+		// If we can't extract bundle ID, return empty string (install still succeeded)
+		return "", nil
+	}
+
+	bundleID := strings.TrimSpace(string(plistOutput))
+	return bundleID, nil
+}

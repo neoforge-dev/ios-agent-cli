@@ -83,7 +83,7 @@
       "name": "App install command",
       "description": "Implement 'ios-agent app install' to install an IPA on simulator",
       "priority": "P1",
-      "status": "pending",
+      "status": "done",
       "epic": "app-management",
       "effort": "2h",
       "blocked_by": ["IOS-003"]
