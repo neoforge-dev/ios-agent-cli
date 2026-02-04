@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/neoforge-dev/ios-agent-cli/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -85,6 +86,7 @@ func outputSuccess(action string, result interface{}) {
 }
 
 // outputError outputs an error response
+// Deprecated: Use outputAgentError instead
 func outputError(action, code, message string, details interface{}) {
 	outputJSON(Response{
 		Success: false,
@@ -93,6 +95,20 @@ func outputError(action, code, message string, details interface{}) {
 			Code:    code,
 			Message: message,
 			Details: details,
+		},
+	})
+	os.Exit(1)
+}
+
+// outputAgentError outputs a standardized error response using AgentError
+func outputAgentError(action string, err *errors.AgentError) {
+	outputJSON(Response{
+		Success: false,
+		Action:  action,
+		Error: &ErrorInfo{
+			Code:    string(err.Code),
+			Message: err.Message,
+			Details: err.Details,
 		},
 	})
 	os.Exit(1)

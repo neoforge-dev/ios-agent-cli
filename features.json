@@ -178,7 +178,7 @@
       "name": "Error handling framework",
       "description": "Implement standardized error codes and JSON error responses",
       "priority": "P0",
-      "status": "pending",
+      "status": "done",
       "epic": "foundation",
       "effort": "2h",
       "acceptance_criteria": [
