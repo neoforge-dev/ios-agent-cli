@@ -14,6 +14,15 @@ type Manager interface {
 
 	// FindDeviceByName returns a device by name
 	FindDeviceByName(name string) (*Device, error)
+
+	// BootSimulator boots a simulator by ID
+	BootSimulator(id string) error
+
+	// ShutdownSimulator shuts down a simulator by ID
+	ShutdownSimulator(id string) error
+
+	// GetDeviceState returns the current state of a device
+	GetDeviceState(id string) (DeviceState, error)
 }
 
 // LocalManager manages local iOS simulators

@@ -233,20 +233,54 @@
       "name": "Remote host support (manual)",
       "description": "Add --remote-host flag to connect to remote mobilecli server",
       "priority": "P2",
-      "status": "pending",
+      "status": "done",
       "epic": "remote",
       "effort": "3h",
-      "blocked_by": ["IOS-010"]
+      "blocked_by": ["IOS-010"],
+      "implementation": {
+        "files": [
+          "pkg/remote/client.go",
+          "pkg/remote/manager.go",
+          "pkg/remote/client_test.go"
+        ],
+        "description": "SSH-based remote client that executes ios-agent commands on remote host",
+        "usage": "ios-agent devices --remote-host 192.168.1.100:22",
+        "features": [
+          "Parse host:port from --remote-host flag (default port: 22)",
+          "Execute commands via SSH to remote ios-agent server",
+          "Parse JSON responses from remote",
+          "RemoteClient implements DeviceBridge interface",
+          "RemoteManager implements Manager interface",
+          "All commands work transparently with local or remote"
+        ]
+      }
     },
     {
       "id": "IOS-018",
       "name": "Tailscale device discovery",
       "description": "Implement automatic discovery of devices on Tailscale network",
       "priority": "P2",
-      "status": "pending",
+      "status": "done",
       "epic": "remote",
       "effort": "4h",
-      "blocked_by": ["IOS-017"]
+      "blocked_by": ["IOS-017"],
+      "implementation": {
+        "files": [
+          "pkg/tailscale/discovery.go",
+          "pkg/tailscale/discovery_test.go",
+          "pkg/device/types.go",
+          "cmd/devices.go"
+        ],
+        "features": [
+          "Parse tailscale status --json output",
+          "Discover machines on Tailscale network",
+          "Add --include-remote flag to devices command",
+          "Add location field to Device type (local/remote)",
+          "Merge local and Tailscale devices in output",
+          "Helper functions: GetMachineByName, GetMachineByIP"
+        ],
+        "usage": "ios-agent devices --include-remote"
+      }
     }
   ],
   "epics": {

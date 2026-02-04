@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/neoforge-dev/ios-agent-cli/pkg/device"
-	"github.com/neoforge-dev/ios-agent-cli/pkg/xcrun"
 	"github.com/spf13/cobra"
 )
 
@@ -101,9 +100,8 @@ type ShutdownResult struct {
 func runBootCmd(cmd *cobra.Command, args []string) {
 	startTime := time.Now()
 
-	// Create device manager with xcrun bridge
-	bridge := xcrun.NewBridge()
-	manager := device.NewLocalManager(bridge)
+	// Create device manager (local or remote based on flags)
+	manager := createDeviceManager()
 
 	// Find device by name
 	dev, err := findDeviceByNameAndOS(manager, simulatorName, osVersion)
@@ -168,9 +166,8 @@ func runBootCmd(cmd *cobra.Command, args []string) {
 }
 
 func runShutdownCmd(cmd *cobra.Command, args []string) {
-	// Create device manager with xcrun bridge
-	bridge := xcrun.NewBridge()
-	manager := device.NewLocalManager(bridge)
+	// Create device manager (local or remote based on flags)
+	manager := createDeviceManager()
 
 	// Get device to verify it exists
 	dev, err := manager.GetDevice(shutdownDeviceID)
@@ -201,7 +198,7 @@ func runShutdownCmd(cmd *cobra.Command, args []string) {
 }
 
 // findDeviceByNameAndOS finds a device matching the name and optional OS version
-func findDeviceByNameAndOS(manager *device.LocalManager, name, osVersion string) (*device.Device, error) {
+func findDeviceByNameAndOS(manager device.Manager, name, osVersion string) (*device.Device, error) {
 	devices, err := manager.ListDevices()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list devices: %w", err)
@@ -237,7 +234,7 @@ func findDeviceByNameAndOS(manager *device.LocalManager, name, osVersion string)
 }
 
 // pollForBootCompletion polls the device state until it is booted or timeout
-func pollForBootCompletion(manager *device.LocalManager, deviceID string, timeoutSec int) (*device.Device, error) {
+func pollForBootCompletion(manager device.Manager, deviceID string, timeoutSec int) (*device.Device, error) {
 	pollInterval := 500 * time.Millisecond
 	deadline := time.Now().Add(time.Duration(timeoutSec) * time.Second)
 
