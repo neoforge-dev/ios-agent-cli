@@ -1,0 +1,10 @@
+# Test output directories
+test-artifacts-*.tar.gz
+
+# Temporary test files
+*.log
+results.json
+test-results.json
+
+# macOS
+.DS_Store

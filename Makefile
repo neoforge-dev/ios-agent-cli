@@ -1,4 +1,4 @@
-.PHONY: build test lint install clean integration-test
+.PHONY: build test lint install clean integration-test e2e-test
 
 BINARY_NAME=ios-agent
 BUILD_DIR=./bin
@@ -19,6 +19,13 @@ test:
 integration-test:
 	@echo "Running integration tests..."
 	go test -v -tags=integration ./test/...
+
+# Run E2E tests with ForgeTerminal app
+e2e-test: build
+	@echo "Running E2E tests with ForgeTerminal..."
+	@cp $(BUILD_DIR)/$(BINARY_NAME) ./$(BINARY_NAME)
+	@./test/e2e/forge_terminal_test.sh
+	@rm -f ./$(BINARY_NAME)
 
 # Install to /usr/local/bin
 install: build
@@ -64,6 +71,7 @@ help:
 	@echo "  build            - Build the binary"
 	@echo "  test             - Run unit tests"
 	@echo "  integration-test - Run integration tests (requires simulator)"
+	@echo "  e2e-test         - Run E2E tests with ForgeTerminal app"
 	@echo "  install          - Install to /usr/local/bin"
 	@echo "  lint             - Run linter"
 	@echo "  fmt              - Format code"

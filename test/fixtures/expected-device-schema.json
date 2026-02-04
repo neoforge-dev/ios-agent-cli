@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ios-agent device discovery response",
+  "description": "Expected JSON schema for 'ios-agent devices' command output",
+  "type": "object",
+  "required": ["success", "action", "result", "timestamp"],
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "Whether the command succeeded"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["devices.list"],
+      "description": "The action performed"
+    },
+    "result": {
+      "type": "object",
+      "required": ["devices"],
+      "properties": {
+        "devices": {
+          "type": "array",
+          "description": "Array of discovered devices",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "state", "type", "os_version", "udid", "available"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique device identifier (UDID)"
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable device name"
+              },
+              "state": {
+                "type": "string",
+                "enum": ["Booted", "Shutdown", "Unknown"],
+                "description": "Current device state"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["simulator", "physical"],
+                "description": "Device type"
+              },
+              "os_version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+$",
+                "description": "iOS version (e.g., '17.4', '18.0')"
+              },
+              "udid": {
+                "type": "string",
+                "description": "Device UDID"
+              },
+              "available": {
+                "type": "boolean",
+                "description": "Whether device is available for use"
+              }
+            }
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of command execution"
+    }
+  }
+}
