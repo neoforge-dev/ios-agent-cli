@@ -192,10 +192,41 @@
       "name": "Integration tests",
       "description": "Write integration tests that run against real simulator",
       "priority": "P1",
-      "status": "pending",
+      "status": "done",
       "epic": "quality",
       "effort": "4h",
-      "blocked_by": ["IOS-009", "IOS-010"]
+      "blocked_by": ["IOS-009", "IOS-010"],
+      "acceptance_criteria": [
+        "Device discovery tests with real simulators",
+        "Boot/shutdown lifecycle tests with cleanup",
+        "Screenshot capture validation",
+        "Basic UI interaction tests",
+        "Concurrent operations safety tests",
+        "Comprehensive error handling tests",
+        "Tests skip gracefully if no simulator available",
+        "Tests are idempotent and clean up resources"
+      ],
+      "implementation": {
+        "file": "test/integration_test.go",
+        "build_tag": "//go:build integration",
+        "test_count": 7,
+        "subtest_count": 26,
+        "coverage": [
+          "Device discovery (listing, lookup by ID/UDID/name)",
+          "Simulator lifecycle (boot, shutdown, state polling)",
+          "Screenshot capture with file validation",
+          "Text input and button presses",
+          "Concurrent device operations (50+ operations)",
+          "Error handling for invalid operations"
+        ],
+        "run_command": "make integration-test",
+        "duration": "~25 seconds",
+        "requirements": [
+          "macOS with Xcode installed",
+          "At least one iOS simulator",
+          "xcrun command available"
+        ]
+      }
     },
     {
       "id": "IOS-017",
