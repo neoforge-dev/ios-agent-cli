@@ -33,7 +33,7 @@
       "name": "Simulator boot command",
       "description": "Implement 'ios-agent simulator boot' to boot a simulator by name or ID",
       "priority": "P0",
-      "status": "pending",
+      "status": "done",
       "epic": "device-management",
       "effort": "2h",
       "blocked_by": ["IOS-002"],
@@ -48,7 +48,7 @@
       "name": "Simulator shutdown command",
       "description": "Implement 'ios-agent simulator shutdown' to shutdown a running simulator",
       "priority": "P0",
-      "status": "pending",
+      "status": "done",
       "epic": "device-management",
       "effort": "1h",
       "blocked_by": ["IOS-003"]
