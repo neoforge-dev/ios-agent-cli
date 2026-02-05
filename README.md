@@ -67,14 +67,25 @@ device_id = discover_ios_device()
 launch_app(device_id, "com.example.app")
 
 for step in test_steps:
-    screenshot = take_screenshot(device_id)
-    state = analyze_screenshot(screenshot)  # AI vision
+    # Get comprehensive device state (device info + foreground app + screenshot)
+    state = get_device_state(device_id, include_screenshot=True)
 
-    if state["needs_login"]:
-        tap(device_id, state["login_button"])
+    # AI agent can now see:
+    # - Which device is running (name, OS version)
+    # - What app is in foreground (bundle ID, PID)
+    # - Visual context (screenshot)
+
+    if state["foreground_app"]["bundle_id"] != "com.example.app":
+        launch_app(device_id, "com.example.app")
+
+    screenshot = state["screenshot"]
+    visual_context = analyze_screenshot(screenshot)  # AI vision
+
+    if visual_context["needs_login"]:
+        tap(device_id, visual_context["login_button"])
         type_text(device_id, credentials)
-    elif state["on_home_screen"]:
-        tap(device_id, state["next_button"])
+    elif visual_context["on_home_screen"]:
+        tap(device_id, visual_context["next_button"])
 ```
 
 ## Command Reference
