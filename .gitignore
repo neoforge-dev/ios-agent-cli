@@ -1,0 +1,5 @@
+# Build artifacts
+bin/
+ios-agent
+ios-agent-cli
+test-artifacts-*.tar.gz
